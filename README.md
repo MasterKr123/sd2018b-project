@@ -7,6 +7,8 @@ Repository for the distributed computing project
 **Docente:** Daniel Barragán C.  
 **Tema:**  Kubernetes  
 **Correo:** daniel.barragan at correo.icesi.edu.co
+**Estudiantes:** Jorge Eliecer, Jonatan Ordoñez, Julian Gonzalez.
+
 
 ### Objetivos
 * Identificar los componentes de un cluster de kubernetes
