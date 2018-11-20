@@ -80,12 +80,41 @@ apt-mark hold kubelet kubeadm kubectl
 
 **2.2 Instalación y configuración de un pod de red que interconecte los pods a desplegar en el cluster**
 
-Se debe instalar un complemento de red de pod para que los pods puedan comunicarse entre sí. Para ello, se ejecuta el siguiente comando:
+Se debe instalar un complemento de red de pod para que los pods puedan comunicarse entre sí. Para ello, se realiza lo siguiente:
 
+Primero, instalamos el Pod Network, ejecutando el siguiente comando:
+```
+kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
+kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
+```
+![][2]
+Como se puede apreciar, se hizo uso del pod network Calico.
+
+Luego, verificamos que todos los Pods se encuentren ejecutando:
+```
+watch kubectl get pods --all-namespaces
+```
+
+Despues, debemos permitir que el nodo master admita el despliegue de Pods. Hay que tener en cuenta que por defecto, el nodo master de un clúster de Kubernetes no ejecuta ningún tipo de carga de trabajo relacionada con los pods desplegados en el clúster, centrándose en las tareas de gestión de los pods y del propio clúster. Por lo cual, ejecutamos lo siguiente:
+```
+kubectl taint nodes --all node-role.kubernetes.io/master-
+```
 
 
 
 **2.3 Despliegue del servicio**
+
+Primero se ejecuta el kubeadm
+```
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+```
+donde:
+–pod-network-cidr: valor del pools de IP, requerido por el complemento de red de pod para la asignación de rangos de red (CIDRS) a cada nodo. En nuestro caso “Calico” por defecto utiliza 192.168.0.0/16.
+![][1]
+```
+kubeadm join 192.168.130.132:6443 --token pd8hwx.cojtmlbibatkjulk --discovery-token-ca-cert-hash sha256:2967c997d2dc52310b13125b5369051311bdf6af2a68ee78b425941ae2eff07a
+```
+Nota: Guardar el Token generado para ser utilizado en la unión de los nodos
 
 
 3. :heavy_check_mark:
@@ -101,3 +130,8 @@ Se debe instalar un complemento de red de pod para que los pods puedan comunicar
 * https://kubernetes.io/docs/setup/independent/install-kubeadm/
 * https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/#pod-network
 * https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/
+* https://juantrucupei.wordpress.com/2018/03/25/instalacion-de-kubernetes-en-linux-con-kubeadm/
+
+[1]: images/kubeadm.png
+[2]: images/podnetwork.png
+[3]: images/pods.png
