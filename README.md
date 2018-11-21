@@ -68,21 +68,74 @@ La instalación de estos paquetes permite:
 
 Para la instalación de estas de dependencias se ejecuto los siguientes comandos:
 ```
-apt-get update && apt-get install -y apt-transport-https curl
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
+sudo apt-get update && apt-get install -y apt-transport-https curl
+sudo curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+sudo cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
 deb https://apt.kubernetes.io/ kubernetes-xenial main
 EOF
-apt-get update
-apt-get install -y kubelet kubeadm kubectl
-apt-mark hold kubelet kubeadm kubectl
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+```
+
+Para configurar Kubernetes se debe realizar lo siguiente:
+
+* Primero, se debe configurar el controlador cgroup utilizado por kubelet, para ello ejecutamos:
+```
+sudo docker info | grep -i cgroup
+```
+donde obtenemos una salida como esta:
+```
+Cgroup Driver: cgroupfs
+WARNING: No swap limit support
+```
+
+* Segundo, se debe agregar la configuración de Kubelet para que coincida con el controlador de cgroup de docker:
+```
+sudo vim /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+```
+y añadimos las siguientes lineas:
+```
+Environment="KUBELET_CGROUP_ARGS=--cgroup-driver=cgroupfs"
+```
+
+Llegado a este punto, es importante mencionar que “Kubelet/Kubernetes desde la versión 1.8 no funciona “no soporta” el uso o habilitación de la memoria de intercambio o Swap los equipos”, por ello es necesario desactivar la memoria swap explicada en el siguiente item.
+
+* Tercero, se debe desactivar la memoria swap. Para ello verificamos el area de intercambio del equipo:
+```
+sudo swapon -s
+```
+donde obtenemos una salida como esta:
+```
+Filename				Type		Size	Used	Priority
+/dev/sda2  	partition	1011708	 268	   -2
+```
+y desactivamos dicha memoria:
+```
+ sudo swapoff /dev/sda2
+```
+finalmente desactivamos la swap en la configuración de kubelet.
+```
+sudo vim /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+```
+y añadimos la linea:
+```
+Environment="KUBELET_EXTRA_ARGS=--fail-swap-on=false"
 ```
 
 **2.2 Instalación y configuración de un pod de red que interconecte los pods a desplegar en el cluster**
 
 Se debe instalar un complemento de red de pod para que los pods puedan comunicarse entre sí. Para ello, se realiza lo siguiente:
 
-Primero, instalamos el Pod Network, ejecutando el siguiente comando:
+
+Antes que todo, se debe configurar el kubectl, para ello ejecutamos:
+```
+sudo mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo  chown $(id -u):$(id -g) $HOME/.kube/config
+```
+
+Hecho esto, instalamos el Pod Network, ejecutando el siguiente comando:
 ```
 kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
 kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
@@ -94,13 +147,12 @@ Luego, verificamos que todos los Pods se encuentren ejecutando:
 ```
 watch kubectl get pods --all-namespaces
 ```
+![][3]
 
 Despues, debemos permitir que el nodo master admita el despliegue de Pods. Hay que tener en cuenta que por defecto, el nodo master de un clúster de Kubernetes no ejecuta ningún tipo de carga de trabajo relacionada con los pods desplegados en el clúster, centrándose en las tareas de gestión de los pods y del propio clúster. Por lo cual, ejecutamos lo siguiente:
 ```
 kubectl taint nodes --all node-role.kubernetes.io/master-
 ```
-
-
 
 **2.3 Despliegue del servicio**
 
@@ -112,7 +164,7 @@ donde:
 –pod-network-cidr: valor del pools de IP, requerido por el complemento de red de pod para la asignación de rangos de red (CIDRS) a cada nodo. En nuestro caso “Calico” por defecto utiliza 192.168.0.0/16.
 ![][1]
 ```
-kubeadm join 192.168.130.132:6443 --token pd8hwx.cojtmlbibatkjulk --discovery-token-ca-cert-hash sha256:2967c997d2dc52310b13125b5369051311bdf6af2a68ee78b425941ae2eff07a
+kubeadm join 192.168.130.132:6443 --token 4022d0.333d98voy9gtua7s --discovery-token-ca-cert-hash sha256:d669671c79946540dd8213133a7e9659ce7456b7f9c02b652a201d499af53d8a
 ```
 Nota: Guardar el Token generado para ser utilizado en la unión de los nodos
 
