@@ -1,14 +1,12 @@
-# sd2018b-project
 ## Miniproyecto Sistemas Distribuidos
-Repository for the distributed computing project
 
 **Universidad ICESI**  
 **Curso:** Sistemas Distribuidos  
 **Docente:** Daniel Barragán C.  
 **Tema:**  Kubernetes  
 **Correo:** daniel.barragan at correo.icesi.edu.co
-**Estudiantes:** Jorge Eliecer, Jonatan Ordoñez, Julian Gonzalez.
-
+**Estudiantes:** Julian "Se me olvidó tu apellido", Jorge Eliecer Castaño, Jonatan Ordoñez Burbano
+**Repositorio:** "Agregar repositorio"
 
 ### Objetivos
 * Identificar los componentes de un cluster de kubernetes
@@ -17,173 +15,94 @@ Repository for the distributed computing project
 de volumenes persistentes, balanceo de carga y descubrimiento de servicio
 * Diagnosticar y ejecutar de forma autónoma las acciones necesarias para lograr infraestructuras estables
 
-### Prerrequisitos
-* Cluster de Kubernetes
-
-### Descripción
-Debera realizar el despliegue de un cluster de kubernetes en al menos tres nodos independientes (un nodo maestro y al menos dos nodos de trabajo). Para ello realice la instalación y configuración de las dependencias necesarias (kubeadm, kubectl, kubelet), y el despliegue de los pods de red necesarios para la comunicación. Todo el proceso debera ser debidamente documentado
-
-Para la prueba del funcionamiento del cluster deberá realizar el despliegue de un pod con al menos un servicio web que se ejecute en el framework de su preferencia. La especificación del deployment debe cumplir con los siguientes requerimientos:
-
-* Cantidad de replicas: 3
-* Asignar una etiqueta que identifique al pod
-
-La especificación del servicio debe mapear un puerto de cada pod a un balanceador de carga, de esta manera la aplicación desplegada debe poder ser accedida a través de un navegador o cliente de consola (curl, wget)
-
-**Opcional:**
-* Plantee e implemente una estrategia para el monitoreo de los contenedores (Pods) puede emplear alguna de las siguientes tecnologías: kubernetes health checks, efk stack, cadvisor, otros.
-* Plantee e implemente una estrategia para la automatización de la conexión a través de tokens
-
-**Nota**
-* No se requiere que incluya archivos de la automatización del cluster o infraestructura base. El empleo de tecnologías de automatización para la infraestructura base es a consideración del estudiante
-
-### Actividades
-1. Documento en formato PDF:  
-  * Formato PDF (5%)
-  * Nombre y código de los integrantes del grupo (5%)
-  * Ortografía y redacción (5%)
-2. Consigne la documentación que incluya los comandos de linux necesarios para el aprovisionamiento del cluster de kubernetes
-  * Instalación y configuración de kubeadm, kubectl, kubelet (10%)
-  * Instalación y configuración de un pod de red que interconecte los pods a desplegar en el cluster (20%)
-  * Evidencias del despliegue del servicio solicitado ejecutandose correctamente en los nodos del cluster. Deberá demostrar que ante la caída de uno de los nodos que forman parte del cluster, los pods son reasignados automáticamente a un nodo saludable. Incluya los archivos: deployment.yml, service.yml empleados (15%)
-4. El informe debe publicarse en un repositorio de github el cual debe ser un fork de https://github.com/ICESI-Training/sd2018b-project y para la entrega deberá hacer un Pull Request (PR) respetando la estructura definida. El código fuente y la url de github deben incluirse en el informe (15%). Tenga en cuenta publicar los archivos para el aprovisionamiento
-5. Incluya evidencias que muestran el funcionamiento de lo solicitado (15%)
-6. Documente algunos de los problemas encontrados y las acciones efectuadas para su solución al aprovisionar la infraestructura y aplicaciones (10%)
-
-
-
 ### Desarrollo
+Para la realización de este proyecto, se utilizó el conocimiento adquirido en la electiva de Cloud Computing para trabajar el despliegue de los pods en AWS.
 
-1. :heavy_check_mark:
+1. Para empezar a trabajar en AWS, se crea dos roles para tener acceso total a la manipulación de dos instancias, la primera es una EC2 y la segunda es una S3, en las cuales se realizará un despliegue de un cluster y los pods. En la siguiente imágen se observa los permisos asignados a los roles:
 
-2. Aprovisionamiento del cluster de kubernetes
+![](imgs/kubernetes-role-user.PNG)
 
-**2.1 Instalación y configuración de kubeadm, kubectl, kubelet**
+![](imgs/kubernetes-role-ec2.PNG)
 
-La instalación de estos paquetes permite:
+2. Lo siguiente que se hizo fue crear un dominio para conectar nuestras dos instancias. Se selecciona el siguiente dominio: ``kubernetes.icesi.edu.co``. En la siguiente imágen se ve nuestro dominio creado:
 
-* kubeadm: el comando para arrancar el cluster.
-* kubelet: el componente que se ejecuta en todas las máquinas de su clúster y hace cosas como arrancar contenedores y contenedores.
-* kubectl: la línea de comandos para hablar con tu grupo.
+![](imgs/route.PNG)
 
-Para la instalación de estas de dependencias se ejecuto los siguientes comandos:
+3. Luego creamos una Hosted Zone que es un contenedor que almacena información sobre como deseamos enrutar el tráfico de internet a nuestro dominio seleccionado. Para ello, ingresamos a la página de administración de AWS, y presionamos en Hosted Zones y en Create Hosted Zone. Aquí ingresamos el nombre de dominio que definimos en el paso anterior para el cual deseamos redireccionar el tráfico, además seleccionamos la opción 'private hosted zone' para indicar que vamos a trabajar en una red privada y por último creamos un VPC para aislar nuestros recuros computacionales de otros usuarios.
+
+![](imgs/route53.PNG)
+
+![](imgs/vpc.PNG)
+
+4. Lo siguiente que hacemos es crear un contenedor en nuestra instancia S3, el cual va a contener todos los archivos que necesitaremos para manejar nuestro cluster. En la siguiente imágen se observan los archivos subidos al buckets de la instancia S3:
+
+![](imgs/s3.PNG)
+
+5. Ahora, nos conectamos a nuestra instancia EC2 para instalar aws y crear los certificados ssh para poder enlazar la instancia con el cluster sin que hayan errores:
+
+![](imgs/putty.PNG)
+
+* El siguiente comando puede ser ejecutado para crear los certificados:
+
 ```
-sudo apt-get update && apt-get install -y apt-transport-https curl
-sudo curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
-sudo cat <<EOF >/etc/apt/sources.list.d/kubernetes.list
-deb https://apt.kubernetes.io/ kubernetes-xenial main
-EOF
-sudo apt-get update
-sudo apt-get install -y kubelet kubeadm kubectl
-sudo apt-mark hold kubelet kubeadm kubectl
-```
-
-Para configurar Kubernetes se debe realizar lo siguiente:
-
-* Primero, se debe configurar el controlador cgroup utilizado por kubelet, para ello ejecutamos:
-```
-sudo docker info | grep -i cgroup
-```
-donde obtenemos una salida como esta:
-```
-Cgroup Driver: cgroupfs
-WARNING: No swap limit support
+~$ ssh-keygen
 ```
 
-* Segundo, se debe agregar la configuración de Kubelet para que coincida con el controlador de cgroup de docker:
+![](imgs/key-gen.PNG)
+
+* Ejecutamos el siguiente comando para instalar el cliente de aws dentro de nuestra instancia:
+
 ```
-sudo vim /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
-```
-y añadimos las siguientes lineas:
-```
-Environment="KUBELET_CGROUP_ARGS=--cgroup-driver=cgroupfs"
+~$ $ pip install awscli --upgrade --user
 ```
 
-Llegado a este punto, es importante mencionar que “Kubelet/Kubernetes desde la versión 1.8 no funciona “no soporta” el uso o habilitación de la memoria de intercambio o Swap los equipos”, por ello es necesario desactivar la memoria swap explicada en el siguiente item.
+![](imgs/install aws.PNG)
 
-* Tercero, se debe desactivar la memoria swap. Para ello verificamos el area de intercambio del equipo:
+6. Lo siguiente que se hace es instalar kubectl que permite crear clústeres mediante línea de comandos. Esto lo hacemos con los siguientes comando:
+
 ```
-sudo swapon -s
-```
-donde obtenemos una salida como esta:
-```
-Filename				Type		Size	Used	Priority
-/dev/sda2  	partition	1011708	 268	   -2
-```
-y desactivamos dicha memoria:
-```
- sudo swapoff /dev/sda2
-```
-finalmente desactivamos la swap en la configuración de kubelet.
-```
-sudo vim /etc/systemd/system/kubelet.service.d/10-kubeadm.conf
-```
-y añadimos la linea:
-```
-Environment="KUBELET_EXTRA_ARGS=--fail-swap-on=false"
+$ curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+$ chmod +x ./kubectl
+$ sudo mv ./kubectl /usr/local/bin/kubectl
 ```
 
-**2.2 Instalación y configuración de un pod de red que interconecte los pods a desplegar en el cluster**
+7. Para poder manipular kubernetes en las instancias de AWS, debemos instalar kops. Kops permite crear, destruir, actualizar y mantener, cluster de kubernetes a través de lineas de comandos. Para descargar kops ejecutamos los siguientes comandos los cuales descargan los archivos de un repositorio de github:
 
-Se debe instalar un complemento de red de pod para que los pods puedan comunicarse entre sí. Para ello, se realiza lo siguiente:
-
-
-Antes que todo, se debe configurar el kubectl, para ello ejecutamos:
 ```
-sudo mkdir -p $HOME/.kube
-sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-sudo  chown $(id -u):$(id -g) $HOME/.kube/config
+~$ wget https://github.com/kubernetes/kops/releases/download/1.8.1/kops-linux-amd64
+~$ chmod +x kops-linux-amd64
+~$ sudo mv kops-linux-amd64 /usr/local/bin/kops
 ```
 
-Hecho esto, instalamos el Pod Network, ejecutando el siguiente comando:
-```
-kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/rbac-kdd.yaml
-kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/kubernetes-datastore/calico-networking/1.7/calico.yaml
-```
-![][2]
-Como se puede apreciar, se hizo uso del pod network Calico.
+8. Debido a que kops necesita conocer la referencia la instancia S3 que servirá de bucket para almacenar los clusters, ejecutamos el siguiente comando que almacena dicha referencia en una variable de kops:
 
-Luego, verificamos que todos los Pods se encuentren ejecutando:
 ```
-watch kubectl get pods --all-namespaces
-```
-![][3]
-
-Despues, debemos permitir que el nodo master admita el despliegue de Pods. Hay que tener en cuenta que por defecto, el nodo master de un clúster de Kubernetes no ejecuta ningún tipo de carga de trabajo relacionada con los pods desplegados en el clúster, centrándose en las tareas de gestión de los pods y del propio clúster. Por lo cual, ejecutamos lo siguiente:
-```
-kubectl taint nodes --all node-role.kubernetes.io/master-
+~$ export KOPS_STATE_STORE=s3://cluster.kubernetes.icesi.edu.co
 ```
 
-**2.3 Despliegue del servicio**
+9. Después de tener instalado kops y almacenar la referencia del cluster en una variable, ejecutamos el siguiente comando para crear nuestro cluster:
 
-Primero se ejecuta el kubeadm
 ```
-sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+~$ kops create cluster --cloud=aws --zones=us-east-1a --name=cluster.kubernetes.icesi.edu.co --dns-zone=cluster.icesi.edu.co --dns private
 ```
-donde:
-–pod-network-cidr: valor del pools de IP, requerido por el complemento de red de pod para la asignación de rangos de red (CIDRS) a cada nodo. En nuestro caso “Calico” por defecto utiliza 192.168.0.0/16.
-![][1]
+En la siguiente imágen podemos ver que el cluster se ha creado correctamente:
+
+![](imgs/cluster.PNG)
+
+10. Finalmente, inicializamos nuestro cluster con el siguiente comando:
+
 ```
-kubeadm join 192.168.130.132:6443 --token 4022d0.333d98voy9gtua7s --discovery-token-ca-cert-hash sha256:d669671c79946540dd8213133a7e9659ce7456b7f9c02b652a201d499af53d8a
+~$ kops update cluster cluster.kubernetes.icesi.edu.co --yes
 ```
-Nota: Guardar el Token generado para ser utilizado en la unión de los nodos
 
+En la siguiente imágen se observa la ejecución del comando:
 
-3. :heavy_check_mark:
+![](imgs/cluster-start.PNG)
 
-4. :heavy_check_mark:
+11. Después de ejecutar este comando, ya se han agregado archivos de configuración al buckets de clusters:
 
-5. :heavy_check_mark:
+![](imgs/s3 cluster.PNG)
 
-6. Problemas encontrados y las acciones efectuadas para su solución
+12. Para verificar que el levantamiento de los nodos fue exitoso, ingresamos al administrador de AWS, en la pestaña de instancias:
 
-### Referencias
-
-* https://kubernetes.io/docs/setup/independent/install-kubeadm/
-* https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/#pod-network
-* https://kubernetes.io/docs/setup/independent/create-cluster-kubeadm/
-* https://juantrucupei.wordpress.com/2018/03/25/instalacion-de-kubernetes-en-linux-con-kubeadm/
-
-[1]: images/kubeadm.png
-[2]: images/podnetwork.png
-[3]: images/pods.png
+![](imgs/nodes.PNG)
