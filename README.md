@@ -24,6 +24,9 @@ Para la realización de este proyecto, se utilizó el conocimiento adquirido en 
 
 ![](imgs/kubernetes-role-ec2.PNG)
 
+Ademas, en la EC2 se crean unas series de reglas para permitir el trafico de paquetes. 
+![](imgs/security-groups.PNG)
+
 2. Lo siguiente que se hizo fue crear un dominio para conectar nuestras dos instancias. Se selecciona el siguiente dominio: ``kubernetes.icesi.edu.co``. En la siguiente imágen se ve nuestro dominio creado:
 
 ![](imgs/route.PNG)
