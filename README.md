@@ -4,8 +4,8 @@
 **Curso:** Sistemas Distribuidos  
 **Docente:** Daniel Barragán C.  
 **Tema:**  Kubernetes  
-**Correo:** daniel.barragan at correo.icesi.edu.co
-**Estudiantes:** Julian "Se me olvidó tu apellido", Jorge Eliecer Castaño, Jonatan Ordoñez Burbano
+**Correo:** daniel.barragan at correo.icesi.edu.co  
+**Estudiantes:** Julian "Se me olvidó tu apellido", Jorge Eliecer Castaño, Jonatan Ordoñez Burbano  
 **Repositorio:** "Agregar repositorio"
 
 ### Objetivos
@@ -56,7 +56,7 @@ Para la realización de este proyecto, se utilizó el conocimiento adquirido en 
 ~$ $ pip install awscli --upgrade --user
 ```
 
-![](imgs/install aws.PNG)
+![](imgs/install-aws.PNG)
 
 6. Lo siguiente que se hace es instalar kubectl que permite crear clústeres mediante línea de comandos. Esto lo hacemos con los siguientes comando:
 
@@ -101,8 +101,15 @@ En la siguiente imágen se observa la ejecución del comando:
 
 11. Después de ejecutar este comando, ya se han agregado archivos de configuración al buckets de clusters:
 
-![](imgs/s3 cluster.PNG)
+![](imgs/s3-cluster.PNG)
 
 12. Para verificar que el levantamiento de los nodos fue exitoso, ingresamos al administrador de AWS, en la pestaña de instancias:
 
 ![](imgs/nodes.PNG)
+
+
+### Problemas encontrados
+
+* Incompatibilidad de versiones: el desarrollo de kubernetes se intento realizar de manera local; sin embargo se encontro una serie de problemas de incompatibilidad con la version de Docker, Python y Pip por lo cual se recurrio a realizar el proyecto en AWS. Ademas, la versión actual de Kubernetes no soporta Swap por lo cual se previnio la configuración de la maquina del laboratiorio.
+
+* Permisos: en algunas ocaciones los permisos de ficheros afectaban la instalación o configuración del sistema por lo cual se realizo una busqueda paar su debido ajuste.
